@@ -1,7 +1,7 @@
 import Foundation
 
-#if canImport(MediaPipeTasksGenai)
-import MediaPipeTasksGenai
+#if canImport(MediaPipeTasksGenAI)
+import MediaPipeTasksGenAI
 #endif
 
 struct GemmaRuntimeStatus {
@@ -69,13 +69,9 @@ final class OnDeviceGemmaRuntime {
             throw OnDeviceGemmaRuntimeError.modelMissing(expectedPath: expectedBundledModelPath)
         }
 
-        #if canImport(MediaPipeTasksGenai)
-        let options = LlmInferenceOptions()
-        options.baseOptions.modelPath = modelPath
+        #if canImport(MediaPipeTasksGenAI)
+        let options = LlmInference.Options(modelPath: modelPath)
         options.maxTokens = 96
-        options.topk = 40
-        options.temperature = 0.2
-        options.randomSeed = 101
 
         let prompt = """
         You are helping configure a local watcher in the OIC iPhone app.
@@ -109,7 +105,7 @@ final class OnDeviceGemmaRuntime {
     }
 
     private static var isDependencyLinked: Bool {
-        #if canImport(MediaPipeTasksGenai)
+        #if canImport(MediaPipeTasksGenAI)
         return true
         #else
         return false
