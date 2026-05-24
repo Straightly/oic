@@ -37,7 +37,7 @@ final class ToastMonitorViewModel: ObservableObject {
 
     func onAppear() {
         statusText = "Ready"
-        refreshGemmaRuntimeStatus()
+        primeGemmaRuntimeUI()
     }
 
     func onDisappear() {
@@ -54,6 +54,16 @@ final class ToastMonitorViewModel: ObservableObject {
 
     func testAlert() {
         reactor.announceToasted()
+    }
+
+    func primeGemmaRuntimeUI() {
+        gemmaIsRunning = false
+        gemmaLastError = nil
+        gemmaLastResponse = nil
+        gemmaRuntimeChoiceText = gemmaRuntime.runtimeChoice
+        gemmaRuntimeStatusText = "Gemma runtime not checked yet."
+        gemmaPrimaryModelPathText = gemmaRuntime.expectedPrimaryModelPath
+        gemmaProjectorModelPathText = gemmaRuntime.expectedProjectorModelPath
     }
 
     func refreshGemmaRuntimeStatus() {

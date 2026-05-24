@@ -54,8 +54,7 @@ enum OnDeviceGemmaRuntimeError: LocalizedError {
 
 final class OnDeviceGemmaRuntime {
     static let runtimeDisplayName = "llama.cpp iOS XCFramework (GGUF)"
-    static let bundledModelDirectory = "Models"
-    static let developmentModelDirectory = "/Users/zhian/Downloads/bartowski/google_gemma-4-E2B-it-GGUF"
+    static let modelDirectoryName = "Models"
     static let primaryModelFilename = "google_gemma-4-E2B-it-Q4_K_S"
     static let primaryModelExtension = "gguf"
     static let projectorModelFilename = "mmproj-google_gemma-4-E2B-it-f16"
@@ -66,14 +65,21 @@ final class OnDeviceGemmaRuntime {
     }
 
     var expectedPrimaryModelPath: String {
-        Self.expectedPrimaryModelLocationDescription
+        Self.expectedModelPathDescription(
+            filename: Self.primaryModelFilename,
+            fileExtension: Self.primaryModelExtension
+        )
     }
 
     var expectedProjectorModelPath: String {
-        Self.expectedProjectorModelLocationDescription
+        Self.expectedModelPathDescription(
+            filename: Self.projectorModelFilename,
+            fileExtension: Self.projectorModelExtension
+        )
     }
 
     func status() -> GemmaRuntimeStatus {
+        Self.prepareModelFilesForRuntime()
         let primaryModelPath = Self.resolvedPrimaryModelPath()
         let projectorModelPath = Self.resolvedProjectorModelPath()
         return GemmaRuntimeStatus(
@@ -87,6 +93,8 @@ final class OnDeviceGemmaRuntime {
     }
 
     func generateSmokeTestResponse(for watcherSpec: WatcherSpec) throws -> String {
+        Self.prepareModelFilesForRuntime()
+
         guard Self.isDependencyLinked else {
             throw OnDeviceGemmaRuntimeError.dependencyMissing(runtimeName: runtimeChoice)
         }
@@ -158,69 +166,86 @@ final class OnDeviceGemmaRuntime {
     }
 
     private static func resolvedPrimaryModelPath() -> String? {
-        if let bundledPath = Bundle.main.path(
-            forResource: primaryModelFilename,
-            ofType: primaryModelExtension,
-            inDirectory: bundledModelDirectory
+        if let documentsPath = documentsModelPath(
+            filename: primaryModelFilename,
+            fileExtension: primaryModelExtension
         ) {
-            return bundledPath
-        }
-
-        if allowsDevelopmentModelDirectory,
-           FileManager.default.fileExists(atPath: developmentPrimaryModelPath) {
-            return developmentPrimaryModelPath
+            return documentsPath
         }
 
         return nil
     }
 
     private static func resolvedProjectorModelPath() -> String? {
-        if let bundledPath = Bundle.main.path(
-            forResource: projectorModelFilename,
-            ofType: projectorModelExtension,
-            inDirectory: bundledModelDirectory
+        if let documentsPath = documentsModelPath(
+            filename: projectorModelFilename,
+            fileExtension: projectorModelExtension
         ) {
-            return bundledPath
-        }
-
-        if allowsDevelopmentModelDirectory,
-           FileManager.default.fileExists(atPath: developmentProjectorModelPath) {
-            return developmentProjectorModelPath
+            return documentsPath
         }
 
         return nil
     }
 
-    private static var developmentPrimaryModelPath: String {
-        "\(developmentModelDirectory)/\(primaryModelFilename).\(primaryModelExtension)"
-    }
-
-    private static var developmentProjectorModelPath: String {
-        "\(developmentModelDirectory)/\(projectorModelFilename).\(projectorModelExtension)"
-    }
-
-    private static var expectedPrimaryModelLocationDescription: String {
-        if allowsDevelopmentModelDirectory {
-            return developmentPrimaryModelPath
+    private static func ensureModelDirectoryExists() {
+        let directoryURL = modelsDirectoryURL
+        if FileManager.default.fileExists(atPath: directoryURL.path) {
+            return
         }
 
-        return "Bundle/\(bundledModelDirectory)/\(primaryModelFilename).\(primaryModelExtension)"
+        try? FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true)
     }
 
-    private static var expectedProjectorModelLocationDescription: String {
-        if allowsDevelopmentModelDirectory {
-            return developmentProjectorModelPath
-        }
-
-        return "Bundle/\(bundledModelDirectory)/\(projectorModelFilename).\(projectorModelExtension)"
+    private static func prepareModelFilesForRuntime() {
+        ensureModelDirectoryExists()
+        moveDroppedFileIntoModelsDirectoryIfNeeded(
+            filename: primaryModelFilename,
+            fileExtension: primaryModelExtension
+        )
+        moveDroppedFileIntoModelsDirectoryIfNeeded(
+            filename: projectorModelFilename,
+            fileExtension: projectorModelExtension
+        )
     }
 
-    private static var allowsDevelopmentModelDirectory: Bool {
-        #if targetEnvironment(simulator)
-        return true
-        #else
-        return false
-        #endif
+    private static func moveDroppedFileIntoModelsDirectoryIfNeeded(filename: String, fileExtension: String) {
+        let rootURL = documentsDirectoryURL
+            .appendingPathComponent(filename)
+            .appendingPathExtension(fileExtension)
+        let modelsURL = modelsDirectoryURL
+            .appendingPathComponent(filename)
+            .appendingPathExtension(fileExtension)
+
+        let fileManager = FileManager.default
+        guard fileManager.fileExists(atPath: rootURL.path) else { return }
+        guard !fileManager.fileExists(atPath: modelsURL.path) else { return }
+
+        try? fileManager.moveItem(at: rootURL, to: modelsURL)
+    }
+
+    private static func documentsModelPath(filename: String, fileExtension: String) -> String? {
+        let path = modelsDirectoryURL
+            .appendingPathComponent(filename)
+            .appendingPathExtension(fileExtension)
+            .path
+
+        return FileManager.default.fileExists(atPath: path) ? path : nil
+    }
+
+    private static func expectedModelPathDescription(filename: String, fileExtension: String) -> String {
+        modelsDirectoryURL
+            .appendingPathComponent(filename)
+            .appendingPathExtension(fileExtension)
+            .path
+    }
+
+    private static var modelsDirectoryURL: URL {
+        documentsDirectoryURL.appendingPathComponent(modelDirectoryName, isDirectory: true)
+    }
+
+    private static var documentsDirectoryURL: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
     }
 
     private static var isDependencyLinked: Bool {

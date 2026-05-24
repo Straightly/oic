@@ -226,3 +226,4 @@ ItIsToasted/ItIsToasted.xcodeproj/project.xcworkspace/xcuserdata/
 ItIsToasted/ItIsToasted/Models/*.bin
 ItIsToasted/ItIsToasted/Models/*.gguf
 ItIsToasted/ItIsToasted/ThirdParty/llama.xcframework/
+LocalModels/

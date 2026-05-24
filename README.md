@@ -36,10 +36,12 @@ Current model defaults used by the app:
 - primary model filename: `google_gemma-4-E2B-it-Q4_K_S.gguf`
 - projection model filename: `mmproj-google_gemma-4-E2B-it-f16.gguf`
 
-For real iPhone testing, copy them into:
+Canonical runtime location:
 
-- `ItIsToasted/ItIsToasted/Models/google_gemma-4-E2B-it-Q4_K_S.gguf`
-- `ItIsToasted/ItIsToasted/Models/mmproj-google_gemma-4-E2B-it-f16.gguf`
+- the app Documents folder under `Models/`
+- the app expects the files in:
+  - `Documents/Models/google_gemma-4-E2B-it-Q4_K_S.gguf`
+  - `Documents/Models/mmproj-google_gemma-4-E2B-it-f16.gguf`
 
 Current development/simulator source files on this machine:
 
@@ -49,13 +51,17 @@ Current development/simulator source files on this machine:
 Important behavior:
 
 - the iPhone app cannot read your Mac download folder directly
-- for a real phone run, the files must exist under `ItIsToasted/ItIsToasted/Models/`
+- do not keep the `.gguf` files under `ItIsToasted/ItIsToasted/Models/`, because Xcode will bundle them into the app and make the build enormous
+- instead, copy the files into the app’s Documents area as a separate operation
+- if Finder only lets you drop files onto the app root, that is okay: the app will move the expected `.gguf` files from the Documents root into `Documents/Models/` when you use `Refresh Gemma status` or `Test Gemma runtime`
 - the app is currently coded to use these exact filenames
 
 ## Repro steps
 
 1. Install CocoaPods dependencies for `ItIsToasted/`.
 2. Download the official `llama.cpp` iOS XCFramework and place it at `ItIsToasted/ItIsToasted/ThirdParty/llama.xcframework`.
-3. Copy the two Gemma GGUF model files into `ItIsToasted/ItIsToasted/Models/` using the exact filenames above.
-4. Open `ItIsToasted/ItIsToasted.xcworkspace`.
-5. Build and run the `ItIsToasted` scheme.
+3. Open `ItIsToasted/ItIsToasted.xcworkspace`.
+4. Build and run the app once so its Documents container exists.
+5. Use Finder/iPhone file sharing to copy the two GGUF files into the app.
+6. If Finder only accepts drops on the app root, drop them there.
+7. Launch the app and use `Refresh Gemma status` or `Test Gemma runtime`; the app will move the files into `Documents/Models/` before checking them.
