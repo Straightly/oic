@@ -14,7 +14,9 @@ final class ToastMonitorViewModel: ObservableObject {
     @Published private(set) var statusText: String = "Idle"
     @Published var errorMessage: String?
     @Published private(set) var gemmaRuntimeStatusText: String = "Gemma runtime not checked yet."
-    @Published private(set) var gemmaExpectedModelPath: String = ""
+    @Published private(set) var gemmaRuntimeChoiceText: String = ""
+    @Published private(set) var gemmaPrimaryModelPathText: String = ""
+    @Published private(set) var gemmaProjectorModelPathText: String = ""
     @Published private(set) var gemmaLastResponse: String?
     @Published private(set) var gemmaLastError: String?
     @Published private(set) var gemmaIsRunning: Bool = false
@@ -56,8 +58,10 @@ final class ToastMonitorViewModel: ObservableObject {
 
     func refreshGemmaRuntimeStatus() {
         let status = gemmaRuntime.status()
+        gemmaRuntimeChoiceText = status.runtimeChoice
         gemmaRuntimeStatusText = status.summary
-        gemmaExpectedModelPath = gemmaRuntime.expectedBundledModelPath
+        gemmaPrimaryModelPathText = status.primaryModelPath ?? gemmaRuntime.expectedPrimaryModelPath
+        gemmaProjectorModelPathText = status.projectorModelPath ?? gemmaRuntime.expectedProjectorModelPath
     }
 
     func runGemmaSmokeTest() {

@@ -8,20 +8,35 @@
 
 /* Begin PBXBuildFile section */
 		F60ADF605B22BFE201FCB5D9 /* Pods_ItIsToasted.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 16C15E91F385B32B48D63A76 /* Pods_ItIsToasted.framework */; };
+		F6A1D7705C33CA1102FCD6E1 /* ItIsToasted/ThirdParty/llama.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = F6A1D76F5C33CA1102FCD6E1 /* ItIsToasted/ThirdParty/llama.xcframework */; };
+		F6A1D7725C33CB4302FCD6E1 /* ItIsToasted/ThirdParty/llama.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = F6A1D76F5C33CA1102FCD6E1 /* ItIsToasted/ThirdParty/llama.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		F6A1D7715C33CB4302FCD6E1 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				F6A1D7725C33CB4302FCD6E1 /* ItIsToasted/ThirdParty/llama.xcframework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		0958EB562F97DF0B004DD9E5 /* ItIsToasted.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ItIsToasted.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		16C15E91F385B32B48D63A76 /* Pods_ItIsToasted.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_ItIsToasted.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		383E5848A6013799CC173BED /* Pods-ItIsToasted.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ItIsToasted.debug.xcconfig"; path = "Target Support Files/Pods-ItIsToasted/Pods-ItIsToasted.debug.xcconfig"; sourceTree = "<group>"; };
 		DCB5CE3F666D701F7FE336C5 /* Pods-ItIsToasted.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ItIsToasted.release.xcconfig"; path = "Target Support Files/Pods-ItIsToasted/Pods-ItIsToasted.release.xcconfig"; sourceTree = "<group>"; };
+		F6A1D76F5C33CA1102FCD6E1 /* ItIsToasted/ThirdParty/llama.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = ItIsToasted/ThirdParty/llama.xcframework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		0958EB582F97DF0B004DD9E5 /* ItIsToasted */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = ItIsToasted;
 			sourceTree = "<group>";
 		};
@@ -33,6 +48,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F60ADF605B22BFE201FCB5D9 /* Pods_ItIsToasted.framework in Frameworks */,
+				F6A1D7705C33CA1102FCD6E1 /* ItIsToasted/ThirdParty/llama.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -63,7 +79,6 @@
 				383E5848A6013799CC173BED /* Pods-ItIsToasted.debug.xcconfig */,
 				DCB5CE3F666D701F7FE336C5 /* Pods-ItIsToasted.release.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -71,6 +86,7 @@
 			isa = PBXGroup;
 			children = (
 				16C15E91F385B32B48D63A76 /* Pods_ItIsToasted.framework */,
+				F6A1D76F5C33CA1102FCD6E1 /* ItIsToasted/ThirdParty/llama.xcframework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -85,6 +101,7 @@
 				7BD52651B5DC94F9967B5528 /* [CP] Check Pods Manifest.lock */,
 				0958EB522F97DF0B004DD9E5 /* Sources */,
 				0958EB532F97DF0B004DD9E5 /* Frameworks */,
+				F6A1D7715C33CB4302FCD6E1 /* Embed Frameworks */,
 				0958EB542F97DF0B004DD9E5 /* Resources */,
 			);
 			buildRules = (

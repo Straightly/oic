@@ -44,9 +44,14 @@ struct ContentView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Gemma runtime")
                         .font(.headline)
+                    Text(viewModel.gemmaRuntimeChoiceText)
+                        .font(.subheadline)
                     Text(viewModel.gemmaRuntimeStatusText)
                         .font(.subheadline)
-                    Text("Expected model bundle path: \(viewModel.gemmaExpectedModelPath)")
+                    Text("Primary model path: \(viewModel.gemmaPrimaryModelPathText)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("Projector path: \(viewModel.gemmaProjectorModelPathText)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
