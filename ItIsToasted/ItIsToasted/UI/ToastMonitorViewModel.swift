@@ -5,13 +5,31 @@ import Dispatch
 
 @MainActor
 final class ToastMonitorViewModel: ObservableObject {
+    enum WatcherSelection: String, CaseIterable, Identifiable {
+        case toast
+        case catDoor
+
+        var id: String { rawValue }
+
+        var displayName: String {
+            switch self {
+            case .toast:
+                return "Toast"
+            case .catDoor:
+                return "Cat door"
+            }
+        }
+    }
+
     @Published var threshold: Double = 0.62
     @Published var discardLateFrames: Bool = true
     @Published var saveIterationData: Bool = true
+    @Published var selectedWatcher: WatcherSelection = .toast
 
     @Published private(set) var isMonitoring: Bool = false
     @Published private(set) var lastScore: Double?
     @Published private(set) var statusText: String = "Idle"
+    @Published private(set) var watcherReasonText: String?
     @Published var errorMessage: String?
     @Published private(set) var gemmaRuntimeStatusText: String = "Gemma runtime not checked yet."
     @Published private(set) var gemmaRuntimeChoiceText: String = ""
@@ -20,13 +38,26 @@ final class ToastMonitorViewModel: ObservableObject {
     @Published private(set) var gemmaLastResponse: String?
     @Published private(set) var gemmaLastError: String?
     @Published private(set) var gemmaIsRunning: Bool = false
+    @Published private(set) var watcherTracePathText: String = ""
 
     let camera = CameraSession()
 
-    private let watcherRuntime: any PhoneLocalWatcherRuntime = ToastWatcherAdapter()
+    private let toastWatcherRuntime = ToastWatcherAdapter()
+    private let catDoorWatcherRuntime = GemmaCatDoorWatcherAdapter()
     private let gemmaRuntime = OnDeviceGemmaRuntime()
     private let reactor = ToastedReactor()
     private var recorder: ToastSessionRecorder?
+    private var watcherRecorder: WatcherSessionRecorder?
+    private var didRecordFirstFrame = false
+
+    private var watcherRuntime: any PhoneLocalWatcherRuntime {
+        switch selectedWatcher {
+        case .toast:
+            return toastWatcherRuntime
+        case .catDoor:
+            return catDoorWatcherRuntime
+        }
+    }
 
     var watcherTitle: String { watcherRuntime.spec.title }
     var watcherPrompt: String { watcherRuntime.spec.prompt }
@@ -34,9 +65,19 @@ final class ToastMonitorViewModel: ObservableObject {
     var runtimeDisplayName: String { watcherRuntime.runtimeDisplayName }
     var runtimePathSummary: String { watcherRuntime.runtimePathSummary }
     var gemmaSmokeTestButtonTitle: String { gemmaIsRunning ? "Running Gemma…" : "Test Gemma runtime" }
+    var thresholdTitle: String {
+        switch selectedWatcher {
+        case .toast:
+            return "Readiness threshold"
+        case .catDoor:
+            return "Alert threshold"
+        }
+    }
 
     func onAppear() {
         statusText = "Ready"
+        watcherReasonText = nil
+        watcherTracePathText = ""
         primeGemmaRuntimeUI()
     }
 
@@ -54,6 +95,14 @@ final class ToastMonitorViewModel: ObservableObject {
 
     func testAlert() {
         reactor.announceToasted()
+    }
+
+    func watcherSelectionChanged() {
+        guard !isMonitoring else { return }
+        lastScore = nil
+        watcherReasonText = nil
+        statusText = "Ready"
+        primeGemmaRuntimeUI()
     }
 
     func primeGemmaRuntimeUI() {
@@ -110,6 +159,9 @@ final class ToastMonitorViewModel: ObservableObject {
         reactor.reset()
 
         errorMessage = nil
+        watcherReasonText = nil
+        watcherTracePathText = ""
+        didRecordFirstFrame = false
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .notDetermined:
             statusText = "Requesting camera permission…"
@@ -122,17 +174,42 @@ final class ToastMonitorViewModel: ObservableObject {
         camera.discardLateFrames = discardLateFrames
         let thresholdForSession = threshold
         let watcherRuntime = watcherRuntime
-        let shouldRecord = saveIterationData
+        let shouldRecord = saveIterationData && selectedWatcher == .toast
         do {
             recorder = shouldRecord ? try ToastSessionRecorder(threshold: thresholdForSession) : nil
         } catch {
             recorder = nil
         }
+        do {
+            watcherRecorder = saveIterationData
+                ? try WatcherSessionRecorder(
+                    watcherSpec: watcherRuntime.spec,
+                    runtimeDisplayName: watcherRuntime.runtimeDisplayName,
+                    threshold: thresholdForSession
+                )
+                : nil
+            watcherTracePathText = watcherRecorder?.directoryPath ?? ""
+        } catch {
+            watcherRecorder = nil
+            watcherTracePathText = ""
+        }
+        watcherRecorder?.recordEvent(at: Date(), name: "session_prepare_started", details: "watcher=\(watcherRuntime.spec.watcherID)")
 
         camera.onFrame = { [weak self] pixelBuffer in
             let timestamp = Date()
             let result = watcherRuntime.analyze(pixelBuffer: pixelBuffer, threshold: thresholdForSession)
-            self?.recorder?.recordFrame(at: timestamp, analysis: result.toast, pixelBuffer: pixelBuffer)
+            if let toastAnalysis = result.toast {
+                self?.recorder?.recordFrame(at: timestamp, analysis: toastAnalysis, pixelBuffer: pixelBuffer)
+            }
+            self?.watcherRecorder?.recordFrame(at: timestamp, watcher: result.watcher, pixelBuffer: pixelBuffer)
+            if self?.didRecordFirstFrame == false {
+                self?.didRecordFirstFrame = true
+                self?.watcherRecorder?.recordEvent(
+                    at: timestamp,
+                    name: "first_frame_processed",
+                    details: "label=\(result.watcher.label), confidence=\(String(format: "%.5f", result.watcher.confidence)), reason=\(result.watcher.reason)"
+                )
+            }
             Task { @MainActor in
                 self?.apply(result: result, timestamp: timestamp)
             }
@@ -140,33 +217,56 @@ final class ToastMonitorViewModel: ObservableObject {
 
         Task {
             do {
+                statusText = selectedWatcher == .toast ? "Starting camera…" : "Preparing Gemma watcher…"
+                watcherRecorder?.recordEvent(at: Date(), name: "watcher_runtime_prepare_started")
+                try watcherRuntime.startSession()
+                watcherRecorder?.recordEvent(at: Date(), name: "watcher_runtime_prepare_completed")
+                watcherRecorder?.recordEvent(at: Date(), name: "camera_start_requested")
                 try await camera.start()
                 isMonitoring = true
                 statusText = "Monitoring…"
                 recorder?.recordEvent(at: Date(), name: "monitoring_started", details: "threshold=\(String(format: "%.3f", thresholdForSession))")
+                watcherRecorder?.recordEvent(at: Date(), name: "monitoring_started", details: "threshold=\(String(format: "%.3f", thresholdForSession))")
             } catch {
                 isMonitoring = false
                 let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
                 statusText = "Camera error"
                 errorMessage = message
                 recorder?.recordEvent(at: Date(), name: "camera_error", details: message)
+                watcherRecorder?.recordEvent(at: Date(), name: "camera_error", details: message)
                 recorder?.stop()
                 recorder = nil
+                watcherRecorder?.stop()
+                watcherRecorder = nil
             }
         }
     }
 
     private func stopMonitoring() {
+        watcherRecorder?.recordEvent(at: Date(), name: "monitoring_stopped")
         camera.stop()
         camera.onFrame = nil
         recorder?.stop()
         recorder = nil
+        watcherRecorder?.stop()
+        watcherRecorder = nil
         isMonitoring = false
         statusText = "Stopped"
     }
 
     private func apply(result: ToastWatcherFrameResult, timestamp: Date) {
-        let readiness = result.toast.readiness
+        watcherReasonText = result.watcher.reason
+
+        if let toast = result.toast {
+            applyToastResult(toast, timestamp: timestamp)
+            return
+        }
+
+        applyWatcherResult(result.watcher, timestamp: timestamp)
+    }
+
+    private func applyToastResult(_ toast: ToastFrameAnalysis, timestamp: Date) {
+        let readiness = toast.readiness
         lastScore = readiness.score
 
         switch readiness.state {
@@ -182,6 +282,24 @@ final class ToastMonitorViewModel: ObservableObject {
             reactor.announceToasted()
         case .overdone:
             statusText = "Overdone"
+        }
+    }
+
+    private func applyWatcherResult(_ watcher: WatcherAnalysis, timestamp: Date) {
+        lastScore = watcher.confidence
+
+        switch watcher.label {
+        case "none":
+            statusText = "No event"
+        case "uncertain":
+            statusText = "Uncertain"
+        default:
+            statusText = watcher.label.replacingOccurrences(of: "_", with: " ").capitalized
+        }
+
+        if watcher.shouldAlert {
+            recorder?.recordEvent(at: timestamp, name: "watcher_alert", details: "label=\(watcher.label), confidence=\(String(format: "%.5f", watcher.confidence))")
+            reactor.announceToasted()
         }
     }
 }

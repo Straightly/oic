@@ -21,11 +21,7 @@ Current runtime used by this repo:
 - local install path: `ItIsToasted/ItIsToasted/ThirdParty/llama.xcframework`
 - source release family: official `ggml-org/llama.cpp` XCFramework release artifact
 
-The app also expects CocoaPods dependencies to be installed, so build from:
-
-- `ItIsToasted/ItIsToasted.xcworkspace`
-
-not the standalone `.xcodeproj`.
+The app no longer depends on CocoaPods Gemma inference packages. The active local model path is the vendored `llama.cpp` XCFramework plus local GGUF files.
 
 ## Local model files
 
@@ -65,3 +61,11 @@ Important behavior:
 5. Use Finder/iPhone file sharing to copy the two GGUF files into the app.
 6. If Finder only accepts drops on the app root, drop them there.
 7. Launch the app and use `Refresh Gemma status` or `Test Gemma runtime`; the app will move the files into `Documents/Models/` before checking them.
+
+## Current cat-door limitation
+
+The cat-door watcher currently uses the GGUF Gemma runtime for startup validation and frame capture tracing only.
+
+- it does **not** currently perform true image-conditioned Gemma inference on captured door frames
+- the earlier first-frame multimodal experimentation was removed because it did not match the GGUF assets used by this repo
+- the next valid multimodal step must use a real GGUF-compatible iOS API for image ingestion

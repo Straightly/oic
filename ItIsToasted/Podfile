@@ -1,8 +1,4 @@
 platform :ios, '16.0'
 
 target 'ItIsToasted' do
-  use_frameworks!
-
-  pod 'MediaPipeTasksGenAI'
-  pod 'MediaPipeTasksGenAIC'
 end

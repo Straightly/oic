@@ -9,6 +9,17 @@ struct ContentView: View {
                 previewSection
 
                 VStack(alignment: .leading, spacing: 10) {
+                    Picker("Watcher", selection: $viewModel.selectedWatcher) {
+                        ForEach(ToastMonitorViewModel.WatcherSelection.allCases) { watcher in
+                            Text(watcher.displayName).tag(watcher)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .disabled(viewModel.isMonitoring)
+                    .onChange(of: viewModel.selectedWatcher) {
+                        viewModel.watcherSelectionChanged()
+                    }
+
                     VStack(alignment: .leading, spacing: 6) {
                         Text(viewModel.watcherTitle)
                             .font(.headline)
@@ -65,7 +76,7 @@ struct ContentView: View {
                     }
 
                     HStack {
-                        Text("Readiness threshold")
+                        Text(viewModel.thresholdTitle)
                         Spacer()
                         Text(String(format: "%.2f", viewModel.threshold))
                             .monospacedDigit()
@@ -87,6 +98,18 @@ struct ContentView: View {
                     }
                     .font(.subheadline)
                     .disabled(viewModel.isMonitoring)
+
+                    if let watcherReason = viewModel.watcherReasonText {
+                        Text(watcherReason)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if !viewModel.watcherTracePathText.isEmpty {
+                        Text("Trace path: \(viewModel.watcherTracePathText)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
 
                     HStack(spacing: 12) {
                         Button(viewModel.isMonitoring ? "Stop" : "Start") {

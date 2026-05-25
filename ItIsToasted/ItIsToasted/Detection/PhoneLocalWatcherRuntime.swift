@@ -7,5 +7,10 @@ protocol PhoneLocalWatcherRuntime {
     var runtimePathSummary: String { get }
 
     func reset()
+    func startSession() throws
     func analyze(pixelBuffer: CVPixelBuffer, threshold: Double) -> ToastWatcherFrameResult
+}
+
+extension PhoneLocalWatcherRuntime {
+    func startSession() throws {}
 }

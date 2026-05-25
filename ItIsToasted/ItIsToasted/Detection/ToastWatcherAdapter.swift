@@ -3,7 +3,7 @@ import Foundation
 
 struct ToastWatcherFrameResult {
     let watcher: WatcherAnalysis
-    let toast: ToastFrameAnalysis
+    let toast: ToastFrameAnalysis?
 }
 
 final class ToastWatcherAdapter: PhoneLocalWatcherRuntime {
